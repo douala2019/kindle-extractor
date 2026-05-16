@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      width: 340px; background: #1a1a2e; color: #e0e0e0; padding: 16px;
+    }
+    h1 { font-size: 15px; font-weight: 700; color: #fff; margin-bottom: 2px; }
+    .subtitle { font-size: 11px; color: #888; margin-bottom: 14px; }
+    .section { background: #16213e; border-radius: 10px; padding: 12px; margin-bottom: 10px; }
+    .section-title {
+      font-size: 11px; font-weight: 600; color: #7b8cde;
+      text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px;
+    }
+    button {
+      width: 100%; padding: 9px; border: none; border-radius: 8px;
+      font-size: 13px; font-weight: 600; cursor: pointer;
+      transition: opacity .15s; margin-bottom: 6px;
+    }
+    button:last-child { margin-bottom: 0; }
+    button:hover:not(:disabled) { opacity: .85; }
+    button:disabled { opacity: .35; cursor: not-allowed; }
+    .btn-primary    { background: #4f8ef7; color: #fff; }
+    .btn-success    { background: #27ae60; color: #fff; }
+    .btn-danger     { background: #e74c3c; color: #fff; }
+    .btn-secondary  { background: #2c3e6b; color: #ccc; }
+    .btn-test       { background: #8e44ad; color: #fff; }
+    .btn-screenshot { background: #d35400; color: #fff; }
+    .btn-pdf        { background: #16a085; color: #fff; }
+    .btn-translate  { background: #c0392b; color: #fff; }
+
+    .speed-row { display:flex; align-items:center; gap:8px; margin-bottom:8px; }
+    .speed-row label { font-size:12px; color:#aaa; white-space:nowrap; }
+    select {
+      flex:1; background:#0f3460; border:1px solid #2c4a8c;
+      border-radius:6px; color:#e0e0e0; padding:5px 8px; font-size:12px;
+    }
+    #status-box {
+      background:#0f3460; border-radius:8px;
+      padding:10px 12px; margin-bottom:10px; display:none;
+    }
+    #status-text { font-size:12px; color:#aad4f5; }
+    .progress-bar-wrap { background:#1a3a6b; border-radius:4px; height:6px; margin-top:6px; overflow:hidden; }
+    #progress-bar { height:100%; background:#4f8ef7; width:0%; transition:width .3s; }
+    #preview {
+      display:none; margin-top:8px; background:#0a1628;
+      border:1px solid #2c4a8c; border-radius:6px; padding:8px;
+      font-size:11px; color:#aad4f5; max-height:110px;
+      overflow-y:auto; white-space:pre-wrap; word-break:break-word;
+    }
+    .translate-btns { display:grid; grid-template-columns:1fr 1fr; gap:6px; }
+    .translate-btns button { margin-bottom:0; font-size:12px; padding:8px; }
+    #not-kindle { text-align:center; padding:20px 0; color:#888; font-size:13px; }
+    #not-kindle span { font-size:28px; display:block; margin-bottom:8px; }
+    #section-ocr { display:none; }
+    #section-pdf { display:none; }
+    .hint {
+      font-size:11px; color:#888; margin-top:8px; line-height:1.5;
+    }
+    .hint code {
+      background:#0a1628; border-radius:4px; padding:1px 5px;
+      color:#aad4f5; font-family:monospace; font-size:10px;
+    }
+    #pdf-progress { font-size:11px; color:#aad4f5; margin-top:6px; display:none; }
+  </style>
+</head>
+<body>
+  <h1>📚 Kindle Translator</h1>
+  <p class="subtitle">Извлечение текста из Kindle Cloud Reader</p>
+
+  <div id="not-kindle" style="display:none">
+    <span>🔒</span>
+    Открой книгу на<br><b>read.amazon.com</b>
+  </div>
+
+  <div id="main-ui">
+    <div id="status-box">
+      <div id="status-text">Готов</div>
+      <div class="progress-bar-wrap"><div id="progress-bar"></div></div>
+    </div>
+
+    <!-- Step 1: Test -->
+    <div class="section">
+      <div class="section-title">1. Проверь — видит ли расширение текст</div>
+      <button class="btn-test" id="btn-test">🔍 Сканировать страницу</button>
+      <div id="preview"></div>
+    </div>
+
+    <!-- Step 2: One page -->
+    <div class="section">
+      <div class="section-title">2. Одна страница</div>
+      <button class="btn-secondary" id="btn-one-page">📋 Скопировать текущую</button>
+      <button class="btn-success"   id="btn-download" disabled>💾 Скачать .txt</button>
+    </div>
+
+    <!-- Step 3: Whole book -->
+    <div class="section">
+      <div class="section-title">3. Вся книга (авто-листание)</div>
+      <div class="speed-row">
+        <label>Пауза:</label>
+        <select id="speed">
+          <option value="3500">Медленно (3.5 с)</option>
+          <option value="2500" selected>Нормально (2.5 с)</option>
+          <option value="1800">Быстро (1.8 с)</option>
+          <option value="1200">Очень быстро</option>
+        </select>
+      </div>
+      <button class="btn-primary"    id="btn-collect">▶ Собрать текст (DOM)</button>
+      <button class="btn-screenshot" id="btn-screenshots">📸 Скриншоты + PDF</button>
+      <button class="btn-danger"     id="btn-stop" disabled>⏹ Остановить</button>
+    </div>
+
+    <!-- Step 4: PDF + Translation -->
+    <div class="section" id="section-pdf">
+      <div class="section-title">4. PDF и перевод</div>
+      <button class="btn-pdf"       id="btn-orig-pdf">📄 Скачать оригинал PDF</button>
+      <button class="btn-translate" id="btn-gtranslate">🌐 Google Translate (документ)</button>
+      <button class="btn-secondary" id="btn-deepl-doc">🔷 DeepL (документ)</button>
+      <div id="pdf-progress"></div>
+      <div class="hint">
+        Или запусти Python-скрипт для авто-перевода:<br>
+        <code>python3 translate_book.py</code><br>
+        <span id="pdf-folder-hint"></span>
+      </div>
+    </div>
+
+    <!-- Step 5: Translate text (if DOM extracted) -->
+    <div class="section">
+      <div class="section-title">5. Перевести текст</div>
+      <div class="translate-btns">
+        <button class="btn-secondary" id="btn-google">🌐 Google</button>
+        <button class="btn-secondary" id="btn-deepl">🔷 DeepL</button>
+        <button class="btn-secondary" id="btn-yandex">🔴 Яндекс</button>
+        <button class="btn-secondary" id="btn-chatgpt">🤖 ChatGPT</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="jspdf.umd.min.js"></script>
+  <script src="popup.js"></script>
+</body>
+</html>
