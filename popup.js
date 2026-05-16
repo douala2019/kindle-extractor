@@ -317,21 +317,6 @@ async function downloadOriginalPDF() {
     setTimeout(() => URL.revokeObjectURL(url), 15000);
     prog.textContent = `✅ PDF скачан (${_screenshots.length} стр.)`;
     setStatus(`✅ Готово: ${_screenshots.length} страниц`, 100);
-
-    // Also save individual PNGs for translate_book.py
-    for (const { page, dataUrl } of _screenshots) {
-      const res  = await fetch(dataUrl);
-      const blob = await res.blob();
-      const objUrl = URL.createObjectURL(blob);
-      await chrome.downloads.download({
-        url: objUrl,
-        filename: `kindle_book/page_${String(page).padStart(4, '0')}.png`,
-        conflictAction: 'overwrite',
-        saveAs: false,
-      });
-      setTimeout(() => URL.revokeObjectURL(objUrl), 30000);
-    }
-    prog.textContent += ` · PNG → ~/Downloads/kindle_book/`;
   } catch (e) {
     prog.textContent = '❌ ' + e.message;
   }

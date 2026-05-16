@@ -157,11 +157,30 @@ def translate_page(text: str, lang: str, prev_tail: str,
 
 def images_to_pdf(png_files: list, output: str):
     from PIL import Image
-    imgs = [Image.open(p).convert('RGB') for p in png_files]
-    if not imgs:
+    import io
+
+    if not png_files:
+        print("  ⚠️  Нет PNG-файлов")
         return
-    imgs[0].save(output, save_all=True, append_images=imgs[1:], resolution=150)
-    print(f"  ✅ {output}  ({os.path.getsize(output)/1024/1024:.1f} МБ)")
+
+    print(f"  Собираю {len(png_files)} страниц в PDF…")
+    imgs = []
+    for i, p in enumerate(png_files):
+        img = Image.open(p).convert('RGB')
+        imgs.append(img)
+        if (i + 1) % 20 == 0:
+            print(f"    загружено {i+1}/{len(png_files)}…")
+
+    # Pillow save_all=True creates a real multi-page PDF
+    imgs[0].save(
+        output,
+        format='PDF',
+        save_all=True,
+        append_images=imgs[1:],
+        resolution=150,
+    )
+    size_mb = os.path.getsize(output) / 1024 / 1024
+    print(f"  ✅ {output}  ({len(imgs)} стр., {size_mb:.1f} МБ)")
 
 # ── translated PDF ────────────────────────────────────────────────────────────
 
@@ -254,13 +273,18 @@ def main():
         print("Сначала собери скриншоты кнопкой «📸 Скриншоты + PDF» в расширении.")
         sys.exit(1)
 
-    png_files = sorted(png_dir.glob('page_*.png'))
+    # Accept any PNG naming: page_0001.png, 0001.png, Page 1.png, etc.
+    png_files = sorted(png_dir.glob('*.png'))
     if not png_files:
         print(f"PNG-файлы не найдены в: {png_dir}")
+        print(f"\nУкажи папку явно:")
+        print(f'  python3 translate_book.py --dir "/путь/к/папке/с/PNG"')
         sys.exit(1)
 
     print(f"📂 {png_dir}")
-    print(f"📄 Страниц: {len(png_files)}")
+    print(f"📄 Найдено PNG: {len(png_files)}")
+    print(f"   Первый: {png_files[0].name}")
+    print(f"   Последний: {png_files[-1].name}")
     if not args.only_pdf:
         print(f"🤖 Движок: {args.engine} / {args.model}  →  язык: {args.lang}\n")
 
